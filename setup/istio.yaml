@@ -13,7 +13,7 @@ spec:
   project: default
   sources:
     - repoURL: 'https://istio-release.storage.googleapis.com/charts'
-      targetRevision: &ISTIO_VERSION 1.27.5
+      targetRevision: &ISTIO_VERSION 1.25.0
       helm:
         valuesObject:
           profile: ambient
@@ -41,17 +41,19 @@ spec:
       targetRevision: v1.4.0
       path: ./config/crd
     - repoURL: https://kiali.org/helm-charts
-      targetRevision: 2.21.0  # Latest stable version (Jan 2026)
-      chart: kiali-server
+      targetRevision: 2.20.0
+      chart: kiali-operator
       helm:
         valuesObject:
-          deployment:
-            view_only_mode: true
-          auth:
-            strategy: anonymous
-          external_services:
-            prometheus:
-              url: "http://prometheus-server.monitoring.svc.cluster.local"
+          cr:
+            create: true
+            namespace: istio-system
+            spec:
+              auth:
+                strategy: "anonymous"
+              external_services:
+                prometheus:
+                  url: "http://prometheus-server.monitoring.svc"
     - repoURL: cnoe://manifests/istio
       path: ./
   destination:

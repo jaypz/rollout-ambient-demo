@@ -11,10 +11,11 @@ spec:
     metadata:
       labels:
         app: httpbin
+        version: "1.2.0" # UPDATE THIS VERSION FOR NICE KIALI GRAPH
     spec:
       containers:
         - name: httpbin
-          image: kennethreitz/httpbin
+          image: kennethreitz/httpbin:latest
           ports:
             - containerPort: 80
           resources:
@@ -23,7 +24,7 @@ spec:
               memory: 64Mi
           env:
             - name: TEST_ENVVAR
-              value: "CHANGEME TO TRIGGER A NEW ROLLOUT"
+              value: "CHANGE ME TO TRIGGER A NEW ROLLOUT"
   strategy:
     canary:
       stableService: httpbin-stable
@@ -180,4 +181,3 @@ spec:
                       - |
                         curl -I -s --fail http://httpbin-preview.httpbin.svc.cluster.local/status/200
                 restartPolicy: Never
-          backoffLimit: 1
