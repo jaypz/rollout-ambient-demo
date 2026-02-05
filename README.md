@@ -16,6 +16,6 @@ to simulate failure, `curl -k https://api.cnoe.localtest.me:8443/status/500` whi
 additionally, to demonstrate how the weighted routes applied to the api service enforces these 
 trafficshaping rules for both traffic coming from the ingress gateway & intra-cluster traffic
 
-`kubectl -n curl exec -it curl-debug bash`
+`kubectl -n curl exec -it curl-debug -- sh`
 
-from there you can run `curl ${HTTPBIN_SVC}`
+from there you can run `curl ${HTTPBIN_SVC}` or `curl ${HTTPBIN_SVC}/status/200` or `curl ${HTTPBIN_SVC}/status/500`
