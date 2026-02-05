@@ -1,19 +1,21 @@
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: curl-debug
-  labels:
-    app: curl-debug
+  name: curl
 spec:
-  containers:
-    - name: curl
-      image: curlimages/curl:latest
-      command: ["/bin/sh", "-c", "sleep infinity"]
-      resources:
-        requests:
-          cpu: "10m"
-          memory: "32Mi"
-      env:
-        - name: HTTPBIN_SVC
-          value: "http://api.httpbin.svc"
-  restartPolicy: OnFailure
+  replicas: 1
+  selector:
+    matchLabels:
+      app: curl
+  template:
+    metadata:
+      labels:
+        app: curl
+    spec:
+      containers:
+        - name: curl
+          image: curlimages/curl:latest
+          command: ["/bin/sh", "-c", "sleep infinity"]
+          env:
+            - name: HTTPBIN_SVC
+              value: "http://api.httpbin.svc"
