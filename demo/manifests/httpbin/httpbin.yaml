@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: httpbin
-        version: "1.2.0" # UPDATE THIS VERSION FOR NICE KIALI GRAPH
+        version: "1.3.0" # UPDATE THIS VERSION FOR NICE KIALI GRAPH
     spec:
       containers:
         - name: httpbin
@@ -24,7 +24,7 @@ spec:
               memory: 64Mi
           env:
             - name: TEST_ENVVAR
-              value: "CHANGE ME TO TRIGGER A NEW ROLLOUT"
+              value: "CHANGEME TO TRIGGER A NEW ROLLOUT"
   strategy:
     canary:
       stableService: httpbin-stable

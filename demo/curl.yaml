@@ -1,0 +1,22 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: curl
+  namespace: argocd
+spec:
+  project: default
+  sources:
+    - repoURL: cnoe://manifests/curl
+      path: ./
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: curl
+  syncPolicy:
+    managedNamespaceMetadata:
+      labels:
+        istio.io/dataplane-mode: ambient
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
