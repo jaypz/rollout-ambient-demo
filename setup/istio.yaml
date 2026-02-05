@@ -1,0 +1,64 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: 'istio-ambient'
+  namespace: argocd
+spec:
+  ignoreDifferences:
+    # Kind issue
+    - kind: ValidatingWebhookConfiguration
+      group: "admissionregistration.k8s.io"
+      jsonPointers:
+        - /webhooks
+  project: default
+  sources:
+    - repoURL: 'https://istio-release.storage.googleapis.com/charts'
+      targetRevision: &ISTIO_VERSION 1.27.5
+      helm:
+        valuesObject:
+          profile: ambient
+      chart: cni
+    - repoURL: 'https://istio-release.storage.googleapis.com/charts'
+      targetRevision: *ISTIO_VERSION
+      helm:
+        valuesObject:
+          profile: ambient
+      chart: base
+    - repoURL: 'https://istio-release.storage.googleapis.com/charts'
+      targetRevision: *ISTIO_VERSION
+      chart: ztunnel
+      helm:
+        releaseName: ztunnel
+        valuesObject:
+          profile: ambient
+    - repoURL: 'https://istio-release.storage.googleapis.com/charts'
+      targetRevision: *ISTIO_VERSION
+      chart: istiod
+      helm:
+        valuesObject:
+          profile: ambient
+    - repoURL: 'https://github.com/kubernetes-sigs/gateway-api/'
+      targetRevision: v1.4.0
+      path: ./config/crd
+    - repoURL: https://kiali.org/helm-charts
+      targetRevision: 2.21.0  # Latest stable version (Jan 2026)
+      chart: kiali-server
+      helm:
+        valuesObject:
+          deployment:
+            view_only_mode: true
+          auth:
+            strategy: anonymous
+          external_services:
+            prometheus:
+              url: "http://prometheus-server.monitoring.svc.cluster.local"
+    - repoURL: cnoe://manifests/istio
+      path: ./
+  destination:
+    server: "https://kubernetes.default.svc"
+    namespace: istio-system
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - CreateNamespace=true

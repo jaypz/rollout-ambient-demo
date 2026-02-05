@@ -1,0 +1,38 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-rollouts
+  namespace: argocd
+spec:
+  ignoreDifferences:
+    # Kind issue
+    - kind: CustomResourceDefinition
+      group: "apiextensions.k8s.io"
+      jsonPointers:
+        - /spec/preserveUnknownFields
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    targetRevision: 2.40.5
+    chart: argo-rollouts
+    helm:
+      valuesObject:
+        dashboard:
+          enabled: false
+        installCRDs: true
+        controller:
+          trafficRouterPlugins:
+            - name: argoproj-labs/gatewayAPI
+              location: "https://github.com/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi/releases/download/v0.4.0/gatewayapi-plugin-linux-amd64"
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-rollouts
+  syncPolicy:
+    managedNamespaceMetadata:
+      labels:
+        istio.io/dataplane-mode: ambient
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

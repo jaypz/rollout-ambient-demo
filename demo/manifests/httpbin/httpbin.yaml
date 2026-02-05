@@ -1,0 +1,183 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: httpbin
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: httpbin
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      containers:
+        - name: httpbin
+          image: kennethreitz/httpbin
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+          env:
+            - name: TEST_ENVVAR
+              value: "CHANGEME TO TRIGGER A NEW ROLLOUT"
+  strategy:
+    canary:
+      stableService: httpbin-stable
+      canaryService: httpbin-preview
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            httpRoute: httpbin-waypoint-route
+            namespace: httpbin
+      steps:
+        - setCanaryScale:
+            replicas: 1
+        - analysis:
+            templates:
+              - templateName: smoke-test-job
+        - setCanaryScale:
+            matchTrafficWeight: true
+        - setWeight: 10
+        - pause: { duration: 1m }
+        - analysis:
+            templates:
+              - templateName: success-rate
+        - setWeight: 40
+        - pause: { duration: 1m}
+        - analysis:
+            templates:
+              - templateName: success-rate
+        - setWeight: 70
+        - pause: { duration: 1m}
+        - analysis:
+            templates:
+              - templateName: success-rate
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: waypoint
+  labels:
+    istio.io/ingress-use-waypoint: "true"
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - name: mesh
+      port: 15008
+      protocol: HBONE
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: ReferenceGrant
+metadata:
+  name: allow-route-to-httpbin
+spec:
+  from:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      namespace: ingress
+  to:
+    - group: ""
+      kind: Service
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: httpbin-waypoint-route
+spec:
+  parentRefs:
+    - group: ""
+      kind: Service
+      name: api
+      port: 80
+  rules:
+    - backendRefs:
+        - name: httpbin-stable
+          port: 80
+        - name: httpbin-preview
+          port: 80
+---
+# The api service acts as a "Gateway" for traffic coming to the HTTPBin service
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+spec:
+  selector:
+    app: httpbin
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-preview
+spec:
+  selector:
+    app: httpbin
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin-stable
+spec:
+  selector:
+    app: httpbin
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: success-rate
+spec:
+  metrics:
+    - name: success-rate
+      successCondition: result[0] >= 0.95
+      provider:
+        prometheus:
+          address: http://prometheus-server.monitoring.svc
+          timeout: 40
+          query: |
+            sum(irate(
+              istio_requests_total{reporter="source",destination_service_name=~"api",destination_service_namespace=~"httpbin",response_code!~"5.*"}[5m]
+            )) /
+            sum(irate(
+              istio_requests_total{reporter="source",destination_service_name=~"api",destination_service_namespace=~"httpbin"}[5m]
+            ))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: smoke-test-job
+spec:
+  metrics:
+    - name: run-smoke-test
+      provider:
+        job:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: test-runner
+                    image: curlimages/curl:latest
+                    # Testing the specific /status/200 endpoint on the preview service
+                    command: ["sh", "-c"]
+                    args:
+                      - |
+                        curl -I -s --fail http://httpbin-preview.httpbin.svc.cluster.local/status/200
+                restartPolicy: Never
+          backoffLimit: 1
