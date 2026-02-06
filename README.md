@@ -1,3 +1,5 @@
+This project sets up istio, prometheus, argo rollouts + a demo Rollout running httpbin
+
 Requires idpbuilder - https://github.com/cnoe-io/idpbuilder/
 
 
