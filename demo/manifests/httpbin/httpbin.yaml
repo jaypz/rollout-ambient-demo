@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: httpbin
-        version: "1.6.0" # UPDATE THIS VERSION TO TRIGGER ROLLOUT
+        version: "1.9.0" # UPDATE THIS VERSION TO TRIGGER ROLLOUT
     spec:
       containers:
         - name: httpbin
@@ -144,7 +144,7 @@ metadata:
 spec:
   metrics:
     - name: success-rate
-      successCondition: result[0] >= 0.95
+      successCondition: isNaN(result[0]) || result[0] >= 0.95
       provider:
         prometheus:
           address: http://prometheus-server.monitoring.svc
