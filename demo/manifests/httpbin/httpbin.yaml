@@ -144,6 +144,7 @@ metadata:
 spec:
   metrics:
     - name: success-rate
+      # For Demo purposes (or development envs) ignore "NaN" results from Prometheus (no data)
       successCondition: isNaN(result[0]) || result[0] >= 0.95
       provider:
         prometheus:
