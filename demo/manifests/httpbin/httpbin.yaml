@@ -11,7 +11,7 @@ spec:
     metadata:
       labels:
         app: httpbin
-        version: "1.3.0" # UPDATE THIS VERSION FOR NICE KIALI GRAPH
+        version: "1.6.0" # UPDATE THIS VERSION TO TRIGGER ROLLOUT
     spec:
       containers:
         - name: httpbin
@@ -22,9 +22,6 @@ spec:
             requests:
               cpu: 50m
               memory: 64Mi
-          env:
-            - name: TEST_ENVVAR
-              value: "CHANGEME TO TRIGGER A NEW ROLLOUT"
   strategy:
     canary:
       stableService: httpbin-stable
@@ -154,10 +151,10 @@ spec:
           timeout: 40
           query: |
             sum(irate(
-              istio_requests_total{reporter="source",destination_service_name=~"api",destination_service_namespace=~"httpbin",response_code!~"5.*"}[5m]
+              istio_requests_total{destination_app="httpbin",response_code!~"5.*"}[5m]
             )) /
             sum(irate(
-              istio_requests_total{reporter="source",destination_service_name=~"api",destination_service_namespace=~"httpbin"}[5m]
+              istio_requests_total{destination_app="httpbin"}[5m]
             ))
 ---
 apiVersion: argoproj.io/v1alpha1
